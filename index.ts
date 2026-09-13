@@ -84,7 +84,8 @@ class App {
     const transcribe_loop = async () => {
       await this.recordAudio();
 
-      const proc = $`./whisper-cli -otxt -nt -np -f /tmp/tutor.wav`.quiet();
+      const proc =
+        $`./whisper-cli -otxt -nt -np -m ./models/ggml-base.en.bin -f  /tmp/tutor.wav`.quiet();
 
       await proc;
 
