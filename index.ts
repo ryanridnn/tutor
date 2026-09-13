@@ -16,39 +16,41 @@ class App {
   }
 
   async getClip() {
-    const img = Image.fromClipboard();
+    if (Image) {
+      const img = Image.fromClipboard();
 
-    if (img) {
-      return img.bytes();
-    } else {
-      if (process.platform === "linux") {
-        try {
-          const proc = Bun.spawn([
-            "xclip",
-            "-selection",
-            "clipboard",
-            "-t",
-            "image/png",
-            "-o",
-          ]);
-
-          const bytes = await proc.stdout.bytes();
-
-          return bytes.length > 0 ? bytes : null;
-        } catch (e) {
-          const proc = Bun.spawn(["wl-paste", "-t", "image/png"]);
-
-          const bytes = await proc.stdout.bytes();
-
-          if (bytes.length > 0) {
-            return bytes;
-          } else {
-            return null;
-          }
-        }
-      } else {
-        return null;
+      if (img) {
+        return img.bytes();
       }
+    }
+
+    if (process.platform === "linux") {
+      try {
+        const proc = Bun.spawn([
+          "xclip",
+          "-selection",
+          "clipboard",
+          "-t",
+          "image/png",
+          "-o",
+        ]);
+
+        const bytes = await proc.stdout.bytes();
+
+        return bytes.length > 0 ? bytes : null;
+      } catch (e) {
+        const proc = Bun.spawn(["wl-paste", "-t", "image/png"]);
+
+        const bytes = await proc.stdout.bytes();
+
+        if (bytes.length > 0) {
+          return bytes;
+        } else {
+          return null;
+        }
+      }
+    } else {
+      return null;
     }
   }
 
@@ -124,6 +126,18 @@ class App {
     } else if (_res === "m") {
       await this.ai.eraseChat();
       console.log("Chat has been erased");
+    } else if (_res === "cut") {
+      await this.ai.cutChat();
+      console.log("Chat has been cut");
+    } else if (_res === "op") {
+      this.ai.openLastChat();
+    } else if (_res === "qa") {
+      const template = await this.ai.qaMode();
+
+      if (template) {
+        this.ai.prompt = template;
+        await this.ai.ai();
+      }
     } else {
       this.ai.prompt = _res;
       await this.ai.ai();

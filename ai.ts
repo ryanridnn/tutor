@@ -3,13 +3,22 @@ import { keyKiller } from "./helpers";
 import readline from "readline";
 
 let TARGET_FILE = "/tmp/tutor-chat.json";
+let LAST_CHAT_FILE = "/tmp/last-chat.md";
 
 export class Ai {
-  model = "alibaba/qwen3.7-flash";
+  model = "xiaomi/mimo-v2.5";
   image: Buffer | null = null;
   prompt: string | null = null;
 
   constructor() {}
+
+  async saveLastChat(chat: string) {
+    await Bun.write(LAST_CHAT_FILE, chat);
+  }
+
+  async openLastChat() {
+    Bun.spawn(["gedit", LAST_CHAT_FILE]);
+  }
 
   async getChat() {
     try {
@@ -35,6 +44,16 @@ export class Ai {
 
   async eraseChat() {
     await Bun.write(TARGET_FILE, "[]");
+  }
+
+  async cutChat() {
+    const chat = await this.getChat();
+
+    if (chat.length > 10) {
+      const newChat = chat.slice(chat.length - 11, chat.length);
+
+      await this.saveChat(newChat);
+    }
   }
 
   async formChat() {
@@ -100,6 +119,8 @@ export class Ai {
           ],
         });
 
+        this.saveLastChat(text);
+
         await this.saveChat(messages);
       },
       abortSignal: abortController.signal,
@@ -121,5 +142,32 @@ export class Ai {
 
     this.image = null;
     this.prompt = null;
+  }
+
+  async qaMode() {
+    let arr: string[] = [];
+
+    const ask = (index: number = 0) => {
+      const _res = prompt(`Q${index + 1}?`);
+
+      if (_res && _res !== "q") {
+        arr.push(_res);
+        ask(index + 1);
+      }
+    };
+
+    ask();
+
+    if (arr.length > 0) {
+      let template =
+        "This is QA mode, in the next response after THIS message, you have to answer the questions per item, make a header for each question and answer each, the questions are below: \n";
+
+      template += arr.map((item, index) => `Q${index + 1}: ${item}`).join("\n");
+
+      return template;
+    } else {
+      console.log("No questions is supplied");
+      return false;
+    }
   }
 }
